@@ -8,25 +8,53 @@ import { Loader } from "./components/Loader/Loader";
 
 function App() {
   const googleAssistant = new Assistant();
+  // const openaiAssistant = new Assistant();
   const [messages, setMessages] = useState([]);
-  const [isLoading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStraming, setIsStraming] = useState(false);
 
   function addMessage(message) {
     setMessages((prevMessages) => [...prevMessages, message]);
   }
 
+  function updateLastMsg(content) {
+    setMessages((previousMessages) =>
+      previousMessages.map((message, index) =>
+        index === previousMessages.length - 1
+          ? { ...message, content: `${message.content}${content}` }
+          : message
+      )
+    );
+  }
+
   async function handleContentSend(content) {
     addMessage({ content, role: "user" });
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const result = await googleAssistant.chat(content);
-      // const result = await googleAssistant.chat(content, messages);
-      addMessage({ content: result, role: "assistant" });
+      // const result = await googleAssistant.chat(content); // non stream chat
+      // addMessage({ content: result, role: "assistant" }); // non stream chat
+      const result = await googleAssistant.chatStream(content);
+      let isFirstMsg = false;
+      // const result = await openaiAssistant.chat(content, messages);
+      for await (const message of result) {
+        if (!isFirstMsg) {
+          isFirstMsg = true;
+          addMessage({ content: "", role: "assistant" });
+          setIsLoading(false);
+          setIsStraming(true);
+        }
+        updateLastMsg(message);
+      }
+      setIsStraming(false);
     } catch (error) {
       addMessage({ content: "Busy servers.", role: "system" });
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setIsStraming(false);
     }
+    //  non stream chat
+    // finally {
+    // setIsLoading(false);
+    // }
   }
 
   return (
@@ -39,7 +67,10 @@ function App() {
       <div className={styles.ChatContainer}>
         <Chat messages={messages} />
       </div>
-      <Controls isDisabled={isLoading} onSend={handleContentSend} />
+      <Controls
+        isDisabled={isLoading || isStraming}
+        onSend={handleContentSend}
+      />
     </div>
   );
 }
