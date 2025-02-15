@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Assistant } from "./assistants/google-ai";
+// import { Assistant } from "./assistants/open-ai";
 import styles from "./App.module.css";
 import { Chat } from "./components/Chat/Chat";
 import { Controls } from "./components/Controls/Controls";
@@ -16,6 +17,7 @@ function App() {
     addMessage({ content, role: "user" });
     try {
       const result = await googleAssistant.chat(content);
+      // const result = await googleAssistant.chat(content, messages);
       addMessage({ content: result, role: "assistant" });
     } catch (error) {
       addMessage({ content: "Busy servers.", role: "system" });
